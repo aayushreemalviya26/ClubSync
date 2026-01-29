@@ -1,19 +1,17 @@
 import { useState } from "react";
-import { signOut } from "firebase/auth";
-import { auth } from "../firebase";
-
 import Announcements from "./announcements";
 import Attendance from "./attendance";
 import Tasks from "./task";
 import Rooms from "./rooms";
 
-function AdminDashboard() {
+function SocietyDashboard({ role, goBack }) {
   const [tab, setTab] = useState("announcements");
 
   return (
     <div style={{ textAlign: "center", marginTop: "30px" }}>
-      <h2>Admin Dashboard</h2>
-      <button onClick={() => signOut(auth)}>Logout</button>
+      <h2>Society Dashboard</h2>
+
+      <button onClick={goBack}>← Back</button>
 
       <hr />
 
@@ -25,11 +23,11 @@ function AdminDashboard() {
       <hr />
 
       {tab === "announcements" && <Announcements />}
-      {tab === "attendance" && <Attendance />}
-      {tab === "tasks" && <Tasks role="admin" />}
+      {tab === "attendance" && <Attendance role={role} />}
+      {tab === "tasks" && <Tasks role={role} />}
       {tab === "rooms" && <Rooms />}
     </div>
   );
 }
 
-export default AdminDashboard;
+export default SocietyDashboard;

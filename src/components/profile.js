@@ -6,13 +6,13 @@ function Profile({ goBack }) {
 
   return (
     <div style={{ textAlign: "center", marginTop: "40px" }}>
-      <h2>👤 Profile</h2>
+      <h2>👤Profile</h2>
 
       <p><strong>Email:</strong> {user.email}</p>
 
       <h3>Your Societies</h3>
       <p>CLUBSYNC</p>
-      {/* later: map real societies */}
+     
 
       <br />
 

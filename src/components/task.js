@@ -1,119 +1,91 @@
 import { useEffect, useState } from "react";
+import { auth, db } from "../firebase";
 import {
   collection,
   addDoc,
-  onSnapshot,
-  query,
-  orderBy,
+  getDocs,
   updateDoc,
   doc,
   serverTimestamp,
 } from "firebase/firestore";
-import { auth, db } from "../firebase";
 
-function Tasks() {
+function Tasks({ role }) {
   const [tasks, setTasks] = useState([]);
   const [title, setTitle] = useState("");
-  const [assignedTo, setAssignedTo] = useState("");
 
-  const userEmail = auth.currentUser.email;
-  const isAdmin = userEmail === "admin@uni.edu";
+  const uid = auth.currentUser.uid;
 
   useEffect(() => {
-    const q = query(
-      collection(db, "tasks"),
-      orderBy("createdAt", "desc")
-    );
-
-    const unsub = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setTasks(data);
-    });
-
-    return () => unsub();
+    fetchTasks();
   }, []);
 
-  const addTask = async () => {
-    if (!title || !assignedTo) {
-      alert("Fill all fields");
-      return;
-    }
+  const fetchTasks = async () => {
+    const snap = await getDocs(collection(db, "tasks"));
+    setTasks(snap.docs.map(d => ({ id: d.id, ...d.data() })));
+  };
+
+  const createTask = async () => {
+    if (!title) return;
 
     await addDoc(collection(db, "tasks"), {
       title,
-      assignedTo,
+      assignedTo: uid,
       status: "pending",
-      createdBy: userEmail,
       createdAt: serverTimestamp(),
     });
 
     setTitle("");
-    setAssignedTo("");
+    fetchTasks();
   };
 
   const markDone = async (id) => {
     await updateDoc(doc(db, "tasks", id), {
       status: "done",
     });
+    fetchTasks();
   };
 
   return (
-    <div style={{ maxWidth: "600px", margin: "0 auto" }}>
-      <h2>Tasks</h2>
+    <div>
+      <h3>Tasks</h3>
 
-      {/* ADMIN CREATE TASK */}
-      {isAdmin && (
+      {/* 🔴 ADMIN ONLY */}
+      {role === "admin" && (
         <>
           <input
             placeholder="Task title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
           />
-          <br /><br />
-          <input
-            placeholder="Assign to (email)"
-            value={assignedTo}
-            onChange={(e) => setAssignedTo(e.target.value)}
-          />
-          <br /><br />
-          <button onClick={addTask}>Assign Task</button>
+          <button onClick={createTask}>Assign Task</button>
           <hr />
         </>
       )}
 
-      {/* TASK LIST */}
-      {tasks
-        .filter(
-          (task) =>
-            isAdmin || task.assignedTo === userEmail
-        )
-        .map((task) => (
-          <div
-            key={task.id}
-            style={{
-              border: "1px solid #ccc",
-              padding: "10px",
-              marginBottom: "10px",
-              background:
-                task.status === "done" ? "#d4edda" : "white",
-            }}
-          >
-            <h4>{task.title}</h4>
-            <p>Assigned to: {task.assignedTo}</p>
-            <p>Status: {task.status}</p>
+      {/* 🔵 TASK LIST */}
+      {tasks.map((task) => (
+        <div
+          key={task.id}
+          style={{
+            border: "1px solid #ccc",
+            margin: "10px",
+            padding: "10px",
+          }}
+        >
+          <strong>{task.title}</strong>
+          <p>Status: {task.status}</p>
 
-            {!isAdmin && task.status === "pending" && (
-              <button onClick={() => markDone(task.id)}>
-                Mark as Done
-              </button>
-            )}
-          </div>
-        ))}
+          {/* 🔵 MEMBER ONLY */}
+          {role === "member" && task.status === "pending" && (
+            <button onClick={() => markDone(task.id)}>
+              Mark Done
+            </button>
+          )}
+        </div>
+      ))}
     </div>
   );
 }
+
 
 export default Tasks;

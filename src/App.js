@@ -16,23 +16,27 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "./firebase";
 import { useEffect } from "react";
 import AdminDashboard from "./components/admindashboard";
-
+import SocietyDashboard from "./components/societydashboard";
 function App() {
   const [inSociety, setInSociety] = useState(false);
-  const [user] = useAuthState(auth);
-  const [screen, setScreen] = useState("dashboard"); 
+  const [user] = useAuthState(auth); 
   const [tab, setTab] = useState("announcements");
   const [activeRoom, setActiveRoom] = useState(null);
-  const [role, setRole] = useState(null);
  const [loadingRole, setLoadingRole] = useState(true);
  const [loginType, setLoginType] = useState(null);
+ const [screen, setScreen] = useState("login"); 
+const [role, setRole] = useState("member");
+
+
 
 
 useEffect(() => {
   if (!user) return;
 
   const fetchRole = async () => {
-    const snap = await getDoc(doc(db, "users", user.uid));
+    const ref = doc(db, "users", user.uid);
+    const snap = await getDoc(ref);
+
     if (snap.exists()) {
       setRole(snap.data().role);
     }
@@ -41,16 +45,33 @@ useEffect(() => {
 
   fetchRole();
 }, [user]);
-
-if (role !== loginType) {
+if (loadingRole) {
+  return <p>Loading...</p>;
+}
+if (screen === "user") {
   return (
-    <AccessDenied
-      goBack={() => {
-        setLoginType(null);
-        setScreen("login"); // or dashboard
-      }}
+    <UserDashboard
+      goToSociety={() => setScreen("society")}
     />
   );
+}
+
+if (screen === "society") {
+  return (
+    <SocietyDashboard
+      role={role}
+      goBack={() => setScreen("user")}
+    />
+  );
+}
+
+
+if (!user && screen === "login") {
+  return <Login goToSignup={() => setScreen("signup")} />;
+}
+
+if (!user && screen === "signup") {
+  return <Signup goToLogin={() => setScreen("login")} />;
 }
 
 
@@ -59,23 +80,17 @@ if (role === "admin") {
 }
 
 if (role === "member") {
-  return <UserDashboard />;
+  return <UserDashboard goToSociety={() => setInSociety(true)} />;
 }
 
-  
-
-
-  if (!user) {
-  return <Login setLoginType={setLoginType} />;
+if (!inSociety) {
+  return <UserDashboard goToSociety={() => setInSociety(true)} />;
 }
-
-  if(!inSociety){
-    return <UserDashboard goToSociety={() => setInSociety(true)} />
-  }
-if (screen === "profile") 
+if (screen === "profile") {
    {
     return <Profile goBack={() => setScreen("dashboard")} />;
   }
+}
 
   return (
   <div style={{ textAlign: "center", marginTop: "40px" }}>
